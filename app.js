@@ -1,11 +1,13 @@
 // tooltip fumction for sort by views 
-const toolTipText = document.getElementById('tooltipText');
 function tooltip(){
+    const toolTipText = document.getElementById('tooltipText');
     if(toolTipText.innerText=='Highest to Lowest'){
         toolTipText.innerText = 'Lowest to Highest';
+        loadVideos(previd,true);
     }
     else{
         toolTipText.innerText = 'Highest to Lowest';
+        loadVideos(previd,false);
     }
 }
 
@@ -19,10 +21,11 @@ const getCategory = async() => {
         const categories = data.data;
         // console.log(categories)
         const categoryDiv = document.getElementById('category');
+        //creating btn for every category
         categories.forEach(category => {
             const categoryName = category.category;
             let id = category.category_id;
-            const btn = `<button onclick="loadVideos(${id});" id="id${id}" class="rounded rounded-md py-2 px-5 bg-zinc-300 text-zinc-500 font-semibold toolTipText-zinc-500 hover:bg-zinc-400 hover:text-zinc-700">${categoryName}</button>`
+            const btn = `<button onclick="loadVideos(${id},null);" id="id${id}" class="rounded rounded-md py-2 px-5 bg-zinc-300 text-zinc-500 font-semibold toolTipText-zinc-500 hover:bg-zinc-400 hover:text-zinc-700">${categoryName}</button>`
             categoryDiv.innerHTML += btn;
         });
     }catch{
@@ -34,23 +37,42 @@ getCategory();
 // time conversion function 
 function timeConverter(seconds){
     seconds = parseInt(seconds);
-
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds - (hours * 3600)) / 60);
     return `${hours} hours ${minutes} minutes ago`;
-
 }
 
-// video loader
-const loadVideos = async(id) => {
+// videos loader
+const loadVideos = async(id,sorting) => {
     try{
         const response = await fetch(`https://openapi.programming-hero.com/api/videos/category/${id}`);
         const data = await response.json();
         const videos = data.data;
-        // console.log(videos);
+        console.log(videos);
+
+        // checking if sorting is enabled or not 
+        if(sorting === null ){}
+        else if(sorting){
+            videos.sort((a, b) =>{
+                const video1 = parseFloat(a.others.views.replace(/K/, ''), 10);
+                const video2 = parseFloat(b.others.views.replace(/K/, ''), 10);
+                return video2 - video1; // sorting in decensding order
+            })
+        }else{
+            videos.sort((a, b) =>{
+                const video1 = parseFloat(a.others.views.replace(/K/, ''), 10);
+                const video2 = parseFloat(b.others.views.replace(/K/, ''), 10);
+                return video1 - video2; // sorting in accending order
+            })
+        }
+
+        // selceting video container div 
         const videosDiv = document.getElementById('videos');
         videosDiv.innerHTML = "";
+
+        // checking length of videos according to category and inserting videos
         if (videos.length == 0){
+            document.getElementById("sortBtn").classList.add("hidden");
             videosDiv.classList.remove("sm:grid-cols-2","md:grid-cols-3","lg:grid-cols-4","gap-5");
             videosDiv.innerHTML = `
             <div class="flex flex-col justify-center items-center mt-10">
@@ -61,7 +83,7 @@ const loadVideos = async(id) => {
         }else{
             videos.forEach(video => {
                 console.log(video);
-    
+                document.getElementById("sortBtn").classList.remove("hidden");
                 // time conversion 
                 let time="";
                 if(video.others.posted_date==""){
@@ -80,10 +102,9 @@ const loadVideos = async(id) => {
 
                 //sorting with views
                 const views = video.others.views;
-                if(toolTipText == 'Highest to Lowest'){
-
-                }
-    
+                const viewsFloat = parseFloat(views);
+                console.log(viewsFloat);
+                
                 // single video append to the div  
                 videosDiv.classList.add("sm:grid-cols-2","md:grid-cols-3","lg:grid-cols-4","gap-5");
                 videosDiv.innerHTML += `
@@ -109,11 +130,13 @@ const loadVideos = async(id) => {
                 </div>`
             });
         }
+        
+        // creating effect for selected category btn 
         const prevBtn = document.getElementById(`id${previd}`);
         prevBtn.classList.remove('bg-red-500','text-white','hover:bg-red-500','hover:text-black');
         prevBtn.classList.add('bg-zinc-300','text-zinc-500');
         previd = id;
-        const newBtn = document.getElementById(`id${previd}`);
+        const newBtn = document.getElementById(`id${id}`);
         newBtn.classList.remove('bg-zinc-300','text-zinc-500');
         newBtn.classList.add('bg-red-500','text-white','hover:bg-red-500','hover:text-black');
         
@@ -121,5 +144,8 @@ const loadVideos = async(id) => {
         (err) => console.log(err);
     }
 }
-var previd = 1000;
-loadVideos(previd);
+
+var previd = 1000; //for keeping track of previous selected category btn
+
+// for autometic load first video
+loadVideos(previd,null);
